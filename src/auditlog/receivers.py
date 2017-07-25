@@ -6,7 +6,7 @@ from auditlog.diff import model_instance_diff
 from auditlog.models import LogEntry
 
 
-def log_create(sender, instance, created, **kwargs):
+def log_create(sender, instance, created, is_accepted=True, **kwargs):
     """
     Signal receiver that creates a log entry when a model instance is first saved to the database.
 
@@ -19,11 +19,12 @@ def log_create(sender, instance, created, **kwargs):
             instance,
             action=LogEntry.Action.CREATE,
             changes=json.dumps(changes),
-            foreign_key_changes=json.dumps(id_key_value_changes)
+            foreign_key_changes=json.dumps(id_key_value_changes),
+            is_accepted=is_accepted
         )
 
 
-def log_update(sender, instance, **kwargs):
+def log_update(sender, instance, is_accepted=True, **kwargs):
     """
     Signal receiver that creates a log entry when a model instance is changed and saved to the database.
 
@@ -45,11 +46,12 @@ def log_update(sender, instance, **kwargs):
                     instance,
                     action=LogEntry.Action.UPDATE,
                     changes=json.dumps(changes),
-                    foreign_key_changes=json.dumps(id_key_value_changes)
+                    foreign_key_changes=json.dumps(id_key_value_changes),
+                    is_accepted=is_accepted
                 )
 
 
-def log_delete(sender, instance, **kwargs):
+def log_delete(sender, instance, is_accepted=True, **kwargs):
     """
     Signal receiver that creates a log entry when a model instance is deleted from the database.
 
@@ -62,5 +64,6 @@ def log_delete(sender, instance, **kwargs):
             instance,
             action=LogEntry.Action.DELETE,
             changes=json.dumps(changes),
-            foreign_key_changes=json.dumps(id_key_value_changes)
+            foreign_key_changes=json.dumps(id_key_value_changes),
+            is_accepted=is_accepted
         )

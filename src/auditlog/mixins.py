@@ -34,7 +34,7 @@ class LogEntryAdminMixin(object):
             link = urlresolvers.reverse(viewname, args=[obj.reviewer.id])
             return u'<a href="%s">%s</a>' % (link, obj.reviewer)
 
-        return 'system'
+        return ''
     reviewer_url.allow_tags = True
     reviewer_url.short_description = 'Reviewer'
 
