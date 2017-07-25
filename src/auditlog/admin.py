@@ -9,9 +9,17 @@ class LogEntryAdmin(admin.ModelAdmin, LogEntryAdminMixin):
     search_fields = ['timestamp', 'object_repr', 'changes', 'actor__first_name', 'actor__last_name']
     list_filter = ['action', ResourceTypeFilter]
     readonly_fields = ['created', 'resource_url', 'action', 'user_url', 'msg']
+
+    def get_readonly_fields(self, request, obj=None):
+        if obj and obj.is_accepted:
+            return self.readonly_fields + ['is_accepted']
+        else:
+            return self.readonly_fields
+
     fieldsets = [
         (None, {'fields': ['created', 'user_url', 'resource_url']}),
         ('Changes', {'fields': ['action', 'msg']}),
+        ('Review', {'fields': ['is_accepted']}),
     ]
 
 

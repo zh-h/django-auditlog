@@ -80,6 +80,6 @@ class AuditlogMiddleware(MiddlewareMixin):
             instance.actor = user
         if hasattr(threadlocal, 'auditlog'):
             instance.remote_addr = threadlocal.auditlog['remote_addr']
-        if hasattr(threadlocal, 'can_review'):
-            if threadlocal.can_review:
-                instance.reviewer = user
+        review_permission_name = 'review_%s' % instance.content_type.model
+        if user.has_perm(review_permission_name):
+            instance.reviewer = user
