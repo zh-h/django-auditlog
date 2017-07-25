@@ -27,6 +27,17 @@ class LogEntryAdminMixin(object):
     user_url.allow_tags = True
     user_url.short_description = 'User'
 
+    def reviewer_url(self, obj):
+        if obj.reviewer:
+            app_label, model = settings.AUTH_USER_MODEL.split('.')
+            viewname = 'admin:%s_%s_change' % (app_label, model.lower())
+            link = urlresolvers.reverse(viewname, args=[obj.reviewer.id])
+            return u'<a href="%s">%s</a>' % (link, obj.reviewer)
+
+        return 'system'
+    reviewer_url.allow_tags = True
+    reviewer_url.short_description = 'Reviewer'
+
     def resource_url(self, obj):
         app_label, model = obj.content_type.app_label, obj.content_type.model
         viewname = 'admin:%s_%s_change' % (app_label, model)

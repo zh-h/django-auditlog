@@ -171,10 +171,14 @@ class LogEntry(models.Model):
     object_repr = models.TextField(verbose_name=_("object representation"))
     action = models.PositiveSmallIntegerField(choices=Action.choices, verbose_name=_("action"))
     changes = models.TextField(blank=True, verbose_name=_("change message"))
+    foreign_key_changes = models.TextField(blank=True, verbose_name=_("foreign key changes message"))
     actor = models.ForeignKey(settings.AUTH_USER_MODEL, blank=True, null=True, on_delete=models.SET_NULL, related_name='+', verbose_name=_("actor"))
     remote_addr = models.GenericIPAddressField(blank=True, null=True, verbose_name=_("remote address"))
     timestamp = models.DateTimeField(auto_now_add=True, verbose_name=_("timestamp"))
     additional_data = JSONField(blank=True, null=True, verbose_name=_("additional data"))
+    is_accepted = models.BooleanField(default=True, blank=True, null=False, verbose_name=_("accepted"))
+    reviewer = models.ForeignKey(settings.AUTH_USER_MODEL, blank=True, null=True, on_delete=models.SET_NULL,
+                                 related_name='reviewed_audit', verbose_name=_("actor"))
 
     objects = LogEntryManager()
 
@@ -203,6 +207,16 @@ class LogEntry(models.Model):
         """
         try:
             return json.loads(self.changes)
+        except ValueError:
+            return {}
+
+    @property
+    def foreign_key_changes_dict(self):
+        """
+        :return: The foreign changes recorded in this log entry as a dictionary object.
+        """
+        try:
+            return json.loads(self.foreign_key_changes)
         except ValueError:
             return {}
 

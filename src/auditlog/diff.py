@@ -2,7 +2,7 @@ from __future__ import unicode_literals
 
 from django.conf import settings
 from django.core.exceptions import ObjectDoesNotExist
-from django.db.models import Model, NOT_PROVIDED, DateTimeField
+from django.db.models import Model, NOT_PROVIDED, DateTimeField, ForeignKey
 from django.utils import timezone
 from django.utils.encoding import smart_text
 
@@ -61,9 +61,11 @@ def get_field_value(obj, field):
     :type obj: Model
     :param field: The field you want to find the value of.
     :type field: Any
-    :return: The value of the field as a string.
-    :rtype: str
+    :return: The value of the field as a string, the foreign column, the foreign value
+    :rtype: tuple
     """
+    id_key = None
+    id_value = None
     if isinstance(field, DateTimeField):
         # DateTimeFields are timezone-aware, so we need to convert the field
         # to its naive form before we can accuratly compare them for changes.
@@ -76,10 +78,13 @@ def get_field_value(obj, field):
     else:
         try:
             value = smart_text(getattr(obj, field.name, None))
+            if isinstance(field, ForeignKey):
+                id_key = field.column
+                id_value = smart_text(getattr(obj, field.column, None))
         except ObjectDoesNotExist:
             value = field.default if field.default is not NOT_PROVIDED else None
 
-    return value
+    return value, id_key, id_value
 
 
 def model_instance_diff(old, new):
@@ -103,6 +108,7 @@ def model_instance_diff(old, new):
         raise TypeError("The supplied new instance is not a valid model instance.")
 
     diff = {}
+    id_key_value_diff = {}
 
     if old is not None and new is not None:
         fields = set(old._meta.fields + new._meta.fields)
@@ -131,13 +137,18 @@ def model_instance_diff(old, new):
         fields = filtered_fields
 
     for field in fields:
-        old_value = get_field_value(old, field)
-        new_value = get_field_value(new, field)
+        old_value, old_id_key, old_id_value = get_field_value(old, field)
+        new_value, new_id_key, new_id_value = get_field_value(new, field)
 
         if old_value != new_value:
             diff[field.name] = (smart_text(old_value), smart_text(new_value))
+        if old_id_value != new_id_value:
+            id_key_value_diff[old_id_key] = new_id_value
 
     if len(diff) == 0:
         diff = None
 
-    return diff
+    if len(id_key_value_diff) == 0:
+        id_key_value_diff = None
+
+    return diff, id_key_value_diff
