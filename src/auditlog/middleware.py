@@ -3,6 +3,7 @@ from __future__ import unicode_literals
 import threading
 import time
 
+from .registry import auditlog
 from django.conf import settings
 from django.db.models.signals import pre_save
 from django.utils.functional import curry
@@ -15,8 +16,41 @@ try:
 except ImportError:
     MiddlewareMixin = object
 
+from django.apps import apps
 
 threadlocal = threading.local()
+
+
+def get_log_entry_object(log_entry):
+    """
+    Get log entry related Model object
+    :param log_entry: LogEntry instance
+    :return: Model object which pk is log_entry.object_pk
+    :rtype models.Model
+    """
+    app_label = log_entry.content_type.app_label
+    model_name = log_entry.content_type.model
+    object_model = apps.get_model(app_label, model_name)
+    object = object_model.objects.get(pk=log_entry.object_pk)
+    return object
+
+
+def save_changes(instance):
+    """
+    Save changes into model object
+    :param instance:
+    """
+
+    changes = instance.foreign_key_changes_dict
+    object = get_log_entry_object(instance)
+    for attname in changes.keys():
+        value = changes[attname][1]
+        # TODO fetch object
+        setattr(object, attname, value)
+    pre_save.disconnect(sender=LogEntry, dispatch_uid=threadlocal.auditlog['signal_duid'])
+    auditlog.unregister(object._meta.model)
+    object.save()
+    auditlog.register(object._meta.model)
 
 
 class AuditlogMiddleware(MiddlewareMixin):
@@ -63,6 +97,8 @@ class AuditlogMiddleware(MiddlewareMixin):
 
         return None
 
+
+
     @staticmethod
     def set_actor(user, sender, instance, signal_duid, **kwargs):
         """
@@ -83,3 +119,4 @@ class AuditlogMiddleware(MiddlewareMixin):
         review_permission_name = 'review_%s' % instance.content_type.model
         if user.has_perm(review_permission_name):
             instance.reviewer = user
+            save_changes(instance)

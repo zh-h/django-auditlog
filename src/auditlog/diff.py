@@ -79,7 +79,7 @@ def get_field_value(obj, field):
         try:
             value = smart_text(getattr(obj, field.name, None))
             if isinstance(field, ForeignKey):
-                id_key = field.column
+                id_key = smart_text(field.column)
                 id_value = smart_text(getattr(obj, field.column, None))
         except ObjectDoesNotExist:
             value = field.default if field.default is not NOT_PROVIDED else None
@@ -142,8 +142,10 @@ def model_instance_diff(old, new):
 
         if old_value != new_value:
             diff[field.name] = (smart_text(old_value), smart_text(new_value))
-        if old_id_value != new_id_value:
-            id_key_value_diff[old_id_key] = new_id_value
+            if old_id_value != new_id_value:
+                id_key_value_diff[new_id_key] = [old_id_value, new_id_value]
+                continue  # if has foreign column, only save foreign id value
+            id_key_value_diff[field.name] = diff[field.name]
 
     if len(diff) == 0:
         diff = None

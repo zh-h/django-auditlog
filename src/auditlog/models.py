@@ -213,7 +213,7 @@ class LogEntry(models.Model):
     @property
     def foreign_key_changes_dict(self):
         """
-        :return: The foreign changes recorded in this log entry as a dictionary object.
+        :return: The changes with foreign changes recorded in this log entry as a dictionary object.
         """
         try:
             return json.loads(self.foreign_key_changes)
